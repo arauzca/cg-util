@@ -61,6 +61,10 @@ include_directories(
 )
 
 
+# set up headers for other projects
+set( COMMONLIBS_INCLUDE_DIR "${CMAKE_HOME_DIRECTORY}/_LIBS/COMMONLIBS/include" )
+
+
 
 # force older GLM versions to use radians instead of degrees
 add_definitions( -DGLM_FORCE_RADIANS )
@@ -88,7 +92,7 @@ endif()
 # compiling the library, and will be added to consumers' build
 # paths.
 target_include_directories(commonlibs PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
         PRIVATE src)
 
@@ -102,4 +106,4 @@ set_property(TARGET commonlibs PROPERTY CXX_STANDARD 17)
 # for cmake_install.cmake:
 #   DIRECTORY   the content (directories and files) of this directory will copied to the destination directory
 #   DESTINATION if defined relative the full path will be ${CMAKE_INSTALL_PREFIX}/[DESTINATION]
-install(DIRECTORY inc/ DESTINATION include/)
+install(DIRECTORY include/ DESTINATION include/)
