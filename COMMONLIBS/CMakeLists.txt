@@ -1,7 +1,6 @@
 # Define library. Only source files here!
 project(CommonLibraries VERSION 0.1)
 
-
 # setup package root directories
 if(FOUND_REQUIRED_PACKAGES)
   set( CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH_OLD};/usr/local/lib/cmake")
@@ -23,9 +22,16 @@ file( GLOB SRCS
         ./src/util/*.c
         ./src/SOIL2/*.cpp
         ./src/SOIL2/*.c)
+source_group("Source Files" FILES ${SRCS})
 
-add_library(commonlibs SHARED
-        ${SRCS})
+file(GLOB HDRS
+          ./include/util/*.h
+          ./include/util/*.hpp)
+source_group("include" FILES ${HDRS})
+
+
+# create library
+add_library(commonlibs SHARED ${SRCS})
 
 
 # find packages and libs
@@ -96,6 +102,8 @@ target_include_directories(commonlibs PUBLIC
         $<INSTALL_INTERFACE:include>
         PRIVATE src)
 
+# Let source and header files appear in the IDE
+target_sources(commonlibs PUBLIC ${SRCS} ${HDRS})
 # If we have compiler requirements for this library, list them
 # here
 set_property(TARGET commonlibs PROPERTY CXX_STANDARD 17)
