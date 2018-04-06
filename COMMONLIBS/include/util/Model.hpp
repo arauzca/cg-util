@@ -8,6 +8,9 @@ gerettet werden.
 *******************************************************************************/
 #pragma once
 
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -17,24 +20,20 @@ gerettet werden.
 
 #include <util/Shader.h>
 
-using namespace std;
 
-struct Vertex
-{
-    glm::vec3 position;         // Position
-    glm::vec3 normal;           // Normal
-    glm::vec2 uv;               // TexCoords
-};
 
-class Mesh
+class Model
 {
-    /*  Mesh Data  */
-    vector<Vertex> vertices;
-    vector<GLuint> indices;
-    
+private:
+    GLuint size;
+    GLuint VAO = 0;
+    GLuint vertexbuffer, uvbuffer, normalbuffer;
+public:
     /*  Functions  */
-    explicit Mesh( const string & mesh_path )
-    {
-        
-    }
+    // Constructor
+    explicit Model( const GLchar * );
+    void render();
+private:
+    bool load_obj( const GLchar *, std::vector<glm::vec3> &, std::vector<glm::vec2> &, std::vector<glm::vec3> & );
+    void split_face( const std::string &, GLchar, std::vector<GLuint> & );
 };
