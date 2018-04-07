@@ -27,13 +27,13 @@ class Model
 private:
     GLuint size;
     GLuint VAO = 0;
-    GLuint vertexbuffer, uvbuffer, normalbuffer;
+    GLuint VBO;
 public:
     /*  Functions  */
     // Constructor
     explicit Model( const GLchar * );
     void render();
 private:
-    bool load_obj( const GLchar *, std::vector<glm::vec3> &, std::vector<glm::vec2> &, std::vector<glm::vec3> & );
+    bool load_obj( const GLchar *, std::vector<GLfloat> & );
     void split_face( const std::string &, GLchar, std::vector<GLuint> & );
 };

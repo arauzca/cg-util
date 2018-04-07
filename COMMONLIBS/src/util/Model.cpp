@@ -10,35 +10,26 @@
 Model::Model( const GLchar * model_path )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 {
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> uvs;
-    std::vector<glm::vec3> normals;
+    std::vector<GLfloat> data;
     
-    if ( load_obj( model_path, vertices, uvs, normals) )
+    if ( load_obj( model_path, data ) )
     {
-        size = vertices.size();
         if ( VAO == 0)
         {
             glGenVertexArrays( 1, &VAO );
+            glGenBuffers( 1, &VBO );
+            
             glBindVertexArray( VAO );
+            glBindBuffer( GL_ARRAY_BUFFER, VBO );
+            glBufferData( GL_ARRAY_BUFFER, data.size() * sizeof(GLfloat), &data[0], GL_STATIC_DRAW );
             
-            glGenBuffers( 1, &vertexbuffer );
-            glBindBuffer( GL_ARRAY_BUFFER, vertexbuffer );
-            glBufferData( GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW );
+            GLsizei stride = ( 3 + 2 + 3 ) * sizeof( GLfloat );
             glEnableVertexAttribArray( 0 );
-            glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
-            
-            glGenBuffers( 1, &uvbuffer );
-            glBindBuffer( GL_ARRAY_BUFFER, uvbuffer );
-            glBufferData( GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2),      &uvs[0],      GL_STATIC_DRAW );
+            glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, stride, nullptr );
             glEnableVertexAttribArray( 1 );
-            glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 0, nullptr );
-            
-            glGenBuffers( 1, &normalbuffer);
-            glBindBuffer( GL_ARRAY_BUFFER, normalbuffer );
-            glBufferData( GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3),  &normals[0],  GL_STATIC_DRAW );
+            glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, stride, (void *)( 3 * sizeof( GLfloat ) ) );
             glEnableVertexAttribArray( 2 );
-            glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+            glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, stride, (void *)( 5 * sizeof( GLfloat ) ) );
         }
     }
 }
@@ -50,15 +41,13 @@ void Model::render()
 {
     glBindVertexArray( VAO );
     glDrawArrays( GL_TRIANGLES, 0, size );
-    glBindVertexArray( 0 );
+    // glBindVertexArray( 0 );
 }
 
 
 
 bool Model::load_obj( const GLchar * model_path,
-                      std::vector<glm::vec3> & out_vertices,
-                      std::vector<glm::vec2> & out_uvs,
-                      std::vector<glm::vec3> & out_normals )
+                      std::vector<GLfloat> & out_data )
 {
     std::vector<GLuint>    vertex_indices, uv_indices, normal_indices;
     std::vector<glm::vec3> temp_vertices;
@@ -86,7 +75,7 @@ bool Model::load_obj( const GLchar * model_path,
             {
                 glm::vec3 vertex;
                 ssin >> vertex.x >> vertex.y >> vertex.z;
-                temp_vertices.push_back(vertex);
+                temp_vertices.emplace_back(vertex);
             }
             else if ( std::strcmp( lineheader.c_str(), "vt" ) == 0 )
             {
@@ -98,7 +87,7 @@ bool Model::load_obj( const GLchar * model_path,
             {
                 glm::vec3 normal;
                 ssin >> normal.x >> normal.y >> normal.z;
-                temp_normals.push_back(normal);
+                temp_normals.emplace_back(normal);
             }
             else if ( std::strcmp( lineheader.c_str(), "f" ) == 0 )
             {
@@ -111,9 +100,9 @@ bool Model::load_obj( const GLchar * model_path,
                     split_face(vertex[i], '/', fs);
                     GLuint vertex_index( fs[0] ), uv_index( fs[1] ), normal_index( fs[2] );
                     
-                    vertex_indices.push_back(vertex_index);
-                    uv_indices.push_back(uv_index);
-                    normal_indices.push_back(normal_index);
+                    vertex_indices.emplace_back(vertex_index);
+                    uv_indices.emplace_back(uv_index);
+                    normal_indices.emplace_back(normal_index);
                 }
             }
             
@@ -121,15 +110,26 @@ bool Model::load_obj( const GLchar * model_path,
             {
                 GLuint vertex_index = vertex_indices[i];
                 glm::vec3 vertex    = temp_vertices[vertex_index-1];
-                out_vertices.push_back(vertex);
+                out_data.emplace_back( vertex.x );
+                out_data.emplace_back( vertex.y );
+                out_data.emplace_back( vertex.z );
                 
-                GLuint uv_index = uv_indices[i];
-                glm::vec2 uv    = temp_uvs[uv_index-1];
-                out_uvs.push_back(uv);
+                if ( !uv_indices.empty() )
+                {
+                    GLuint uv_index = uv_indices[i];
+                    glm::vec2 uv    = temp_uvs[uv_index-1];
+                    out_data.emplace_back( uv.x );
+                    out_data.emplace_back( uv.y );
+                }
                 
-                GLuint normal_index = normal_indices[i];
-                glm::vec3 normal    = temp_normals[normal_index-1];
-                out_normals.push_back(normal);
+                if ( !normal_indices.empty() )
+                {
+                    GLuint normal_index = normal_indices[i];
+                    glm::vec3 normal    = temp_normals[normal_index-1];
+                    out_data.emplace_back( normal.x );
+                    out_data.emplace_back( normal.y );
+                    out_data.emplace_back( normal.z );
+                }
             }
         }
     }
@@ -139,6 +139,7 @@ bool Model::load_obj( const GLchar * model_path,
         return false;
     }
     
+    size = vertex_indices.size();
     input.close();
     return true;
 }
@@ -150,6 +151,6 @@ void Model::split_face( const std::string & line, GLchar delim, std::vector<GLui
     
     while ( getline(ss, item, delim) )
     {
-        out.push_back( static_cast<GLuint>(std::stoi(item)) );
+        out.emplace_back( static_cast<GLuint>(std::stoi(item)) );
     }
 }
