@@ -1,6 +1,9 @@
 # Define library. Only source files here!
 project(CommonLibraries VERSION 0.1)
 
+set( ASSIMP_INCLUDE_DIRS "${CMAKE_HOME_DIRECTORY}/_LIBS/ASSIMP/include"
+                         "${CMAKE_BINARY_DIR}/_LIBS/ASSIMP/include" )
+
 # setup package root directories
 if(FOUND_REQUIRED_PACKAGES)
   set( CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH_OLD};/usr/local/lib/cmake")
@@ -8,12 +11,10 @@ if(FOUND_REQUIRED_PACKAGES)
   unset( FLTK_ROOT_DIR )
   unset( GLEW_ROOT_DIR )
   unset( GLM_ROOT_DIR )
-  unset( ASSIMP_ROOT_DIR )
 else()
   set( FLTK_ROOT_DIR   "${CMAKE_HOME_DIRECTORY}/_LIBS/FLTK")
   set( GLEW_ROOT_DIR   "${CMAKE_HOME_DIRECTORY}/_LIBS/GLEW")
   set( GLM_ROOT_DIR    "${CMAKE_HOME_DIRECTORY}/_LIBS/GLM")
-  set( ASSIMP_ROOT_DIR "${CMAKE_HOME_DIRECTORY}/_LIBS/ASSIMP")
 endif()
 
 
@@ -61,6 +62,7 @@ endif( APPLE )
 # setup package headers
 include_directories(
         ${OPENGL_INCLUDE_DIR}
+        ${ASSIMP_INCLUDE_DIRS}
         ${FLTK_INCLUDE_DIRS}
         ${GLEW_INCLUDE_DIR}
         ${GLM_INCLUDE_DIRS}
@@ -79,20 +81,11 @@ add_definitions( -DGLM_FORCE_RADIANS )
 # add framework (specific to mac)
 target_link_libraries(commonlibs
         glfw
+        assimp
         ${OPENGL_LIBRARIES}
         ${FLTK_LIBRARIES}
         ${GLEW_LIBRARY}
         ${COCOA_LIBRARY} ${COREVID_LIBRARY} ${IOKIT_LIBRARY})
-
-if(ASSIMP_ROOT_DIR)
-  find_package(assimp REQUIRED)
-  include_directories(
-    ${ASSIMP_INCLUDE_DIRS}
-  )
-  target_link_libraries(commonlibs
-    ${ASSIMP_LIBRARIES}
-  )
-endif()
 
 # Define headers for this library. PUBLIC headers are used for
 # compiling the library, and will be added to consumers' build
@@ -115,3 +108,4 @@ set_property(TARGET commonlibs PROPERTY CXX_STANDARD 17)
 #   DIRECTORY   the content (directories and files) of this directory will copied to the destination directory
 #   DESTINATION if defined relative the full path will be ${CMAKE_INSTALL_PREFIX}/[DESTINATION]
 install(DIRECTORY include/ DESTINATION include/)
+add_dependencies(commonlibs assimp)
