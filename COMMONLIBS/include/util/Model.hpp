@@ -25,15 +25,15 @@ gerettet werden.
 class Model
 {
 private:
-    GLuint size;
-    GLuint VAO = 0;
-    GLuint VBO;
+    GLsizei indexCount;
+    GLuint  VAO = 0;
+    GLuint  VBO, EBO;
 public:
     /*  Functions  */
     // Constructor
     explicit Model( const GLchar * );
     void render();
 private:
-    bool load_obj( const GLchar *, std::vector<GLfloat> & );
+    bool load_obj( const GLchar *, std::vector<GLfloat> &, std::vector<GLuint> & );
     void split_face( const std::string &, GLchar, std::vector<GLuint> & );
 };
