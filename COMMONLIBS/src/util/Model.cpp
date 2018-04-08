@@ -10,18 +10,18 @@
 Model::Model( const GLchar * model_path )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 {
-    std::vector<GLfloat> data;
+    std::vector<GLfloat>    data;
+    std::vector<GLuint>     indices;
     
-    if ( load_obj( model_path, data ) )
+    if ( load_obj( model_path, data, indices ) )
     {
         if ( VAO == 0)
         {
-            glGenVertexArrays( 1, &VAO );
-            glGenBuffers( 1, &VBO );
-            
             glBindVertexArray( VAO );
             glBindBuffer( GL_ARRAY_BUFFER, VBO );
-            glBufferData( GL_ARRAY_BUFFER, data.size() * sizeof(GLfloat), &data[0], GL_STATIC_DRAW );
+            glBufferData( GL_ARRAY_BUFFER, data.size( ) * sizeof( GLfloat ), &data[0], GL_STATIC_DRAW );
+            glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
+            glBufferData( GL_ELEMENT_ARRAY_BUFFER, indices.size( ) * sizeof( GLuint ), &indices[0], GL_STATIC_DRAW );
             
             GLsizei stride = ( 3 + 2 + 3 ) * sizeof( GLfloat );
             glEnableVertexAttribArray( 0 );
@@ -40,19 +40,19 @@ Model::Model( const GLchar * model_path )
 void Model::render()
 {
     glBindVertexArray( VAO );
-    glDrawArrays( GL_TRIANGLES, 0, size );
+    glDrawElements( GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, nullptr );
     // glBindVertexArray( 0 );
 }
 
 
 
 bool Model::load_obj( const GLchar * model_path,
-                      std::vector<GLfloat> & out_data )
+                      std::vector<GLfloat> & data,
+                      std::vector<GLuint>    & indices )
 {
-    std::vector<GLuint>    vertex_indices, uv_indices, normal_indices;
-    std::vector<glm::vec3> temp_vertices;
-    std::vector<glm::vec2> temp_uvs;
-    std::vector<glm::vec3> temp_normals;
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec2> uvs;
+    std::vector<glm::vec3> normals;
     
     // retrieve model file /////////////////////////////////////////////////////////////////////////
     std::ios_base::iostate  exception_mask;
@@ -63,73 +63,45 @@ bool Model::load_obj( const GLchar * model_path,
     
     try
     {
-        input.open( model_path );
+        input.open( model_path, std::ios::in );
         std::string line;
         std::string lineheader;
         while (std::getline(input, line))
         {
-            std::stringstream ssin(line);
-            ssin >> lineheader;
-            
-            if ( std::strcmp( lineheader.c_str(), "v" ) == 0 )
+            if ( line.substr(0,2) == "v " )
             {
-                glm::vec3 vertex;
-                ssin >> vertex.x >> vertex.y >> vertex.z;
-                temp_vertices.emplace_back(vertex);
+                std::istringstream s( line.substr(2) );
+                glm::vec3 position;
+                s >> position.x >> position.y >> position.z;
+                std::cout << "v " << position.x << "/" << position.y << "/" << position.z << std::endl;
+                positions.push_back(position);
             }
-            else if ( std::strcmp( lineheader.c_str(), "vt" ) == 0 )
+            else if ( line.substr(0,3) == "vt " )
             {
+                std::istringstream s( line.substr(3) );
                 glm::vec2 uv;
-                ssin >> uv.x >> uv.y;
-                temp_uvs.push_back(uv);
+                s >> uv.x >> uv.y;
+                std::cout << "vt " << uv.x << "/" << uv.y << std::endl;
+                uvs.push_back(uv);
             }
-            else if ( std::strcmp( lineheader.c_str(), "vn" ) == 0 )
+            else if ( line.substr(0,3) == "vn " )
             {
+                std::istringstream s( line.substr(3) );
                 glm::vec3 normal;
-                ssin >> normal.x >> normal.y >> normal.z;
-                temp_normals.emplace_back(normal);
+                s >> normal.x >> normal.y >> normal.z;
+                std::cout << "vt " << normal.x << "/" << normal.y << "/" << normal.z << std::endl;
+                normals.push_back(normal);
             }
-            else if ( std::strcmp( lineheader.c_str(), "f" ) == 0 )
+            else if ( line.substr(0,2) == "f " )
             {
-                std::string vertex[3];
-                ssin >> vertex[0] >> vertex[1] >> vertex[2];
-    
-                for ( int i = 0; i < 3; i++ )
-                {
-                    std::vector<GLuint> fs;
-                    split_face(vertex[i], '/', fs);
-                    GLuint vertex_index( fs[0] ), uv_index( fs[1] ), normal_index( fs[2] );
-                    
-                    vertex_indices.emplace_back(vertex_index);
-                    uv_indices.emplace_back(uv_index);
-                    normal_indices.emplace_back(normal_index);
-                }
-            }
-            
-            for ( GLuint i = 0; i < vertex_indices.size(); i++ )
-            {
-                GLuint vertex_index = vertex_indices[i];
-                glm::vec3 vertex    = temp_vertices[vertex_index-1];
-                out_data.emplace_back( vertex.x );
-                out_data.emplace_back( vertex.y );
-                out_data.emplace_back( vertex.z );
-                
-                if ( !uv_indices.empty() )
-                {
-                    GLuint uv_index = uv_indices[i];
-                    glm::vec2 uv    = temp_uvs[uv_index-1];
-                    out_data.emplace_back( uv.x );
-                    out_data.emplace_back( uv.y );
-                }
-                
-                if ( !normal_indices.empty() )
-                {
-                    GLuint normal_index = normal_indices[i];
-                    glm::vec3 normal    = temp_normals[normal_index-1];
-                    out_data.emplace_back( normal.x );
-                    out_data.emplace_back( normal.y );
-                    out_data.emplace_back( normal.z );
-                }
+                std::istringstream s( line.substr(2) );
+                GLuint a,b,c;
+                s >> a >> b >> c;
+                a--; b--; c--;
+                std::cout << "f " << a<< "/" << b << "/" << c << std::endl;
+                indices.push_back(a);
+                indices.push_back(b);
+                indices.push_back(c);
             }
         }
     }
@@ -139,8 +111,30 @@ bool Model::load_obj( const GLchar * model_path,
         return false;
     }
     
-    size = vertex_indices.size();
     input.close();
+    indexCount = static_cast<GLsizei>( indices.size( ) );
+    
+    for (GLint i = 0; i < positions.size(); ++i)
+    {
+        data.push_back( positions[i].x );
+        data.push_back( positions[i].y );
+        data.push_back( positions[i].z );
+        
+        if ( !uvs.empty( ) )
+        {
+            data.push_back( uvs[i].x );
+            data.push_back( uvs[i].y );
+        }
+        
+        if ( !normals.empty( ) )
+        {
+            data.push_back( normals[i].x );
+            data.push_back( normals[i].y );
+            data.push_back( normals[i].z );
+        }
+    }
+    
+    
     return true;
 }
 

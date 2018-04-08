@@ -1,3 +1,6 @@
 [submodule "GLFW"]
 	path = GLFW
 	url = github:glfw/glfw.git
+[submodule "ASSIMP"]
+	path = ASSIMP
+	url = git@github.com:assimp/assimp.git
