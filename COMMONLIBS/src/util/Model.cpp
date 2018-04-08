@@ -1,150 +1,133 @@
-//
-//  Created by Carlos Arauz on 06.04.18.
-//
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ *      that if you confess with your mouth the Lord Yeshua and believe in your heart that God has
+ *      raised Him from the dead, you will be saved. For with the heart one believes unto
+ *      righteousness, and with the mouth confession is made unto salvation.
+ *                                                                                 - Romans 10:9-10
+ */
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ *      Berner Fachhochschule / Bern University of Applied Sciences
+ *
+ *      Bachelor Thesis: Physically-based rendering ind Real-Time / Image-based lighting
+ *               Author: Carlos Arauz
+ *                 File: Model.hpp
+ *          Description: Definition file of the Model class, which loads model from files using the
+ *                       protable library ASSIMP.
+ *                 Date: 08.04.2018
+ */
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #include <util/Model.hpp>
 
-
-
-
-Model::Model( const GLchar * model_path )
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// renders all meshes using the given shader
+void Model::render( Shader shader )
 {
-    std::vector<GLfloat>    data;
-    std::vector<GLuint>     indices;
-    
-    if ( load_obj( model_path, data, indices ) )
+    for ( auto mesh : this->meshes )
     {
-        if ( VAO == 0)
-        {
-            glBindVertexArray( VAO );
-            glBindBuffer( GL_ARRAY_BUFFER, VBO );
-            glBufferData( GL_ARRAY_BUFFER, data.size( ) * sizeof( GLfloat ), &data[0], GL_STATIC_DRAW );
-            glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
-            glBufferData( GL_ELEMENT_ARRAY_BUFFER, indices.size( ) * sizeof( GLuint ), &indices[0], GL_STATIC_DRAW );
-            
-            GLsizei stride = ( 3 + 2 + 3 ) * sizeof( GLfloat );
-            glEnableVertexAttribArray( 0 );
-            glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, stride, nullptr );
-            glEnableVertexAttribArray( 1 );
-            glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, stride, (void *)( 3 * sizeof( GLfloat ) ) );
-            glEnableVertexAttribArray( 2 );
-            glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, stride, (void *)( 5 * sizeof( GLfloat ) ) );
-        }
+        mesh.render( shader );
     }
 }
-// Model::Model( const std::string & ) //////////////////////////////////////////////////////////////
 
 
-
-void Model::render()
+// Processes a node recursively.
+void Model::process_node( aiNode * node, const aiScene * scene )
 {
-    glBindVertexArray( VAO );
-    glDrawElements( GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, nullptr );
-    // glBindVertexArray( 0 );
+    // Process each mesh located at the current node
+    for ( GLuint i = 0; i < node->mNumMeshes; i++ )
+    {
+        aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+        this->meshes.push_back( this->process_mesh( mesh, scene ) );
+    }
+    
+    // Process recursivele each childer node
+    for ( GLuint i = 0; i < node->mNumChildren; i++ )
+    {
+        this->process_node( node->mChildren[i], scene );
+    }
 }
 
 
-
-bool Model::load_obj( const GLchar * model_path,
-                      std::vector<GLfloat> & data,
-                      std::vector<GLuint>    & indices )
+Mesh Model::process_mesh( aiMesh * mesh, const aiScene * scene )
 {
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec2> uvs;
-    std::vector<glm::vec3> normals;
+    // Data to fill
+    std::vector<Vertex> vertices;
+    std::vector<GLuint> indices;
     
-    // retrieve model file /////////////////////////////////////////////////////////////////////////
-    std::ios_base::iostate  exception_mask;
-    std::ifstream           input;
-    
-    exception_mask = input.exceptions( ) | std::ios::failbit;
-    input.exceptions( exception_mask );
-    
-    try
+    // Loop through each of the mesh's vertices
+    for ( GLuint i = 0; i < mesh->mNumVertices; i++ )
     {
-        input.open( model_path, std::ios::in );
-        std::string line;
-        std::string lineheader;
-        while (std::getline(input, line))
-        {
-            if ( line.substr(0,2) == "v " )
-            {
-                std::istringstream s( line.substr(2) );
-                glm::vec3 position;
-                s >> position.x >> position.y >> position.z;
-                std::cout << "v " << position.x << "/" << position.y << "/" << position.z << std::endl;
-                positions.push_back(position);
-            }
-            else if ( line.substr(0,3) == "vt " )
-            {
-                std::istringstream s( line.substr(3) );
-                glm::vec2 uv;
-                s >> uv.x >> uv.y;
-                std::cout << "vt " << uv.x << "/" << uv.y << std::endl;
-                uvs.push_back(uv);
-            }
-            else if ( line.substr(0,3) == "vn " )
-            {
-                std::istringstream s( line.substr(3) );
-                glm::vec3 normal;
-                s >> normal.x >> normal.y >> normal.z;
-                std::cout << "vt " << normal.x << "/" << normal.y << "/" << normal.z << std::endl;
-                normals.push_back(normal);
-            }
-            else if ( line.substr(0,2) == "f " )
-            {
-                std::istringstream s( line.substr(2) );
-                GLuint a,b,c;
-                s >> a >> b >> c;
-                a--; b--; c--;
-                std::cout << "f " << a<< "/" << b << "/" << c << std::endl;
-                indices.push_back(a);
-                indices.push_back(b);
-                indices.push_back(c);
-            }
-        }
-    }
-    catch ( const std::ifstream::failure & e )
-    {
-        std::cerr << "Cannot open file \042" << model_path << "\042" << std::endl;
-        return false;
-    }
-    
-    input.close();
-    indexCount = static_cast<GLsizei>( indices.size( ) );
-    
-    for (GLint i = 0; i < positions.size(); ++i)
-    {
-        data.push_back( positions[i].x );
-        data.push_back( positions[i].y );
-        data.push_back( positions[i].z );
+        Vertex vertex;
+        glm::vec3 vector;
         
-        if ( !uvs.empty( ) )
+        // Positions
+        vector.x = mesh->mVertices[i].x;
+        vector.y = mesh->mVertices[i].y;
+        vector.z = mesh->mVertices[i].z;
+        vertex.position = vector;
+        
+        // Texture coordinates
+        if ( mesh->mTextureCoords[0] )
         {
-            data.push_back( uvs[i].x );
-            data.push_back( uvs[i].y );
+            glm::vec2 uv;
+            uv.x = mesh->mTextureCoords[0][i].x;
+            uv.y = mesh->mTextureCoords[0][i].y;
+            vertex.uv = uv;
+        }
+        else
+        {
+            vertex.uv = glm::vec2( 0.0f, 0.0f );
         }
         
-        if ( !normals.empty( ) )
+        // Normals
+        vector.x = mesh->mNormals[i].x;
+        vector.y = mesh->mNormals[i].y;
+        vector.z = mesh->mNormals[i].z;
+        vertex.normal = vector;
+        
+        vertices.push_back( vertex );
+    }
+    
+    // Loop through the faces of the mesh and retrieve the correspoding index of the vertex.
+    for ( GLuint i = 0; i < mesh->mNumFaces; i++ )
+    {
+        aiFace face = mesh->mFaces[i];
+        for ( GLuint j = 0; j < face.mNumIndices; j++ )
         {
-            data.push_back( normals[i].x );
-            data.push_back( normals[i].y );
-            data.push_back( normals[i].z );
+            indices.push_back( face.mIndices[j] );
         }
     }
     
-    
-    return true;
+    return Mesh( vertices, indices );
 }
 
-void Model::split_face( const std::string & line, GLchar delim, std::vector<GLuint> & out )
-{
-    std::stringstream ss( line );
-    std::string item;
-    
-    while ( getline(ss, item, delim) )
-    {
-        out.emplace_back( static_cast<GLuint>(std::stoi(item)) );
-    }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
