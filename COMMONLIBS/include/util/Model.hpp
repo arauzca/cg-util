@@ -36,7 +36,7 @@ class Model
 {
 public:
     /*  Functions  */
-    inline explicit Model( GLchar * path )
+    inline explicit Model( const GLchar * path )
     {
         this->load_model( path );
     }
