@@ -41,6 +41,7 @@ if(FOUND_REQUIRED_PACKAGES)
   find_package(glfw3     REQUIRED NO_MODULE)
 endif()
 
+find_package(OpenCV    REQUIRED )
 find_package(OpenGL REQUIRED)
 find_package(FLTK   REQUIRED)
 find_package(GLEW   REQUIRED STATIC)
@@ -61,6 +62,7 @@ endif( APPLE )
 
 # setup package headers
 include_directories(
+        ${OpenCV_INCLUDE_DIRS}
         ${OPENGL_INCLUDE_DIR}
         ${ASSIMP_INCLUDE_DIRS}
         ${FLTK_INCLUDE_DIRS}
@@ -82,6 +84,7 @@ add_definitions( -DGLM_FORCE_RADIANS )
 target_link_libraries(commonlibs
         glfw
         assimp
+        ${OpenCV_LIBS}
         ${OPENGL_LIBRARIES}
         ${FLTK_LIBRARIES}
         ${GLEW_LIBRARY}

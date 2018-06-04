@@ -24,7 +24,7 @@ public:
 
 
     // activates the shader ////////////////////////////////////////////////////////////////////////
-    void    use( );
+    void use( );
 
     // utility uniform function
     void setBool( const std::string &, GLboolean ) const;

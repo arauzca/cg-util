@@ -4,10 +4,13 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 
-#include <vector>
+// OpenCV Includes
+#include <opencv2/photo.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
 
-// SOIL2 include
-#include "SOIL2/SOIL2.h"
+
+#include <vector>
 
 class TextureLoading
 {
@@ -18,13 +21,15 @@ public:
         GLuint textureID;
         glGenTextures( 1, &textureID );
         
-        int imageWidth, imageHeight;
+        cv::Mat image = cv::imread( path );
+        cv::cvtColor( image, image, CV_BGR2RGB );
         
-        unsigned char *image = SOIL_load_image( path, &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB );
+        int imageWidth  = image.cols;
+        int imageHeight = image.rows;
         
         // Assign texture to ID
         glBindTexture( GL_TEXTURE_2D, textureID );
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image );
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid *)image.data );
         glGenerateMipmap( GL_TEXTURE_2D );
         
         // Parameters
@@ -34,8 +39,6 @@ public:
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
         glBindTexture( GL_TEXTURE_2D,  0);
         
-        SOIL_free_image_data( image );
-        
         return textureID;
     }
     
@@ -44,16 +47,20 @@ public:
         GLuint textureID;
         glGenTextures( 1, &textureID );
         
+        cv::Mat image;
         int imageWidth, imageHeight;
-        unsigned char *image;
         
         glBindTexture( GL_TEXTURE_CUBE_MAP, textureID );
         
         for ( GLuint i = 0; i < faces.size( ); i++ )
         {
-            image = SOIL_load_image( faces[i], &imageWidth, &imageHeight, 0, SOIL_LOAD_RGB );
-            glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, image );
-            SOIL_free_image_data( image );
+            cv::Mat image = cv::imread( faces[i] );
+            cv::cvtColor(image, image, CV_BGR2RGB);
+            
+            imageWidth  = image.cols;
+            imageHeight = image.rows;
+            
+            glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid *)image.data );
         }
         glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
         glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
